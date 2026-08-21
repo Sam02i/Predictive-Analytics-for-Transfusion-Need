@@ -1,6 +1,8 @@
 <div align="center">
 
-# 🩸 Transfusion Risk Prediction
+<img src="transfusion_pixel.gif" width="120" alt="Pixel-art blood drop animation" />
+
+# Transfusion Risk Prediction
 
 **A small-data ML pipeline predicting blood transfusion need from routine patient vitals — built, debugged, and evaluated in the open.**
 
@@ -10,23 +12,23 @@
 ![Status](https://img.shields.io/badge/status-portfolio%20project-lightgrey)
 ![License](https://img.shields.io/badge/not-medical%20advice-red)
 
-[Live Demo](#-interactive-demo) · [Notebook](#-project-structure) · [Key Findings](#-key-findings) · [Methodology](#-methodology)
+[Live Demo](#interactive-demo) · [Notebook](#project-structure) · [Key Findings](#key-findings) · [Methodology](#methodology)
 
 </div>
 
 ---
 
-## 📋 Overview
+## Overview
 
 This project predicts whether a patient stay involved a transfusion need, using 6 routine clinical vitals — heart rate, respiratory rate, oxygen saturation, systolic/diastolic blood pressure, and sex. It's built on a small MIMIC-style demo dataset (206 patient stays, 14 positive cases).
 
 **What makes this project worth a look isn't a headline accuracy number — it's the debugging journey.** Two rounds of data leakage were found and fixed, a database join-explosion bug was traced and corrected, a reproducibility bug was caught, and every result is reported with honest uncertainty (cross-validated mean ± standard deviation) rather than a single cherry-picked score.
 
-**🖱️ Try it live:** `transfusion_dashboard.html` — a wizard-style risk checker running the *actual* trained model client-side, no server required.
+**Try it live:** `transfusion_dashboard.html` — a wizard-style risk checker running the *actual* trained model client-side, no server required.
 
 ---
 
-## 📊 Dataset
+## Dataset
 
 | Attribute | Value |
 |---|---|
@@ -50,7 +52,7 @@ This project predicts whether a patient stay involved a transfusion need, using 
 | `sbp_mean` | Mean systolic blood pressure across the stay | Continuous |
 | `dbp_mean` | Mean diastolic blood pressure across the stay | Continuous |
 
-**Excluded (label-defining) columns:** `hemoglobin`, `sbp_min`, `heart_rate_max`, `shock_index_mean`, `pulse_pressure_mean` — directly used in, or derived from, the label formula (see [Key Findings](#-key-findings)).
+**Excluded (label-defining) columns:** `hemoglobin`, `sbp_min`, `heart_rate_max`, `shock_index_mean`, `pulse_pressure_mean` — directly used in, or derived from, the label formula (see [Key Findings](#key-findings)).
 
 </details>
 
@@ -58,7 +60,7 @@ This project predicts whether a patient stay involved a transfusion need, using 
 
 ---
 
-## 🔬 Methodology
+## Methodology
 
 ```
 Ingestion  →  Cleaning & Aggregation  →  Leakage-Safe Feature Selection
@@ -86,7 +88,7 @@ Both models were evaluated on the *same* 5 stratified folds. Given the small sam
 
 ---
 
-## 🔑 Key Findings
+## Key Findings
 
 | # | Finding | Impact |
 |---|---|---|
@@ -98,7 +100,7 @@ Both models were evaluated on the *same* 5 stratified folds. Given the small sam
 
 ---
 
-## ⚠️ Limitations
+## Limitations
 
 - **Sample size.** 206 patient stays and 14 positive cases is small — all metrics here are indicative, not definitive.
 - **Synthetic label.** `needs_transfusion` is rule-derived for this demo, not a real clinical outcome. This project demonstrates leakage-aware, honestly evaluated ML methodology — not a validated clinical tool.
@@ -107,7 +109,11 @@ Both models were evaluated on the *same* 5 stratified folds. Given the small sam
 
 ---
 
-## 🖥️ Interactive Demo
+## Interactive Demo
+
+<div align="center">
+<img src="transfusion_pixel.gif" width="90" alt="Pixel-art blood drop transfusion animation" />
+</div>
 
 `transfusion_dashboard.html` is a self-contained, single-file web app — no build step, no server, no API. Open it directly in any browser.
 
@@ -118,12 +124,13 @@ Both models were evaluated on the *same* 5 stratified folds. Given the small sam
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 ├── Pred_Analytics_for_Transfusion.ipynb   # Full pipeline: cleaning, EDA, modeling, evaluation
 ├── transfusion_dashboard.html             # Interactive demo — runs the real trained model
 ├── model.js                               # Trained Random Forest, exported via m2cgen
+├── transfusion_pixel.gif                  # Pixel-art animation used in this README
 ├── requirements.txt                       # Python dependencies
 ├── .env                                   # DB credentials (not committed — see .gitignore)
 ├── .gitignore
@@ -132,7 +139,7 @@ Both models were evaluated on the *same* 5 stratified folds. Given the small sam
 
 ---
 
-## 🚀 Running It Yourself
+## Running It Yourself
 
 ```bash
 # 1. Clone and set up environment
