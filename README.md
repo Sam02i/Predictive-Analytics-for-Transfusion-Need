@@ -1,67 +1,161 @@
-# Transfusion Risk Prediction
+<div align="center">
 
-A small-data machine learning project that predicts blood transfusion need from routine patient vitals — built, debugged, and evaluated in the open. This README documents not just the final model, but the methodology journey that got it there, including two rounds of data leakage that were found and fixed.
+# 🩸 Transfusion Risk Prediction
 
-**Live interactive demo:** `transfusion_dashboard.html` — a wizard-style risk checker that runs the actual trained model client-side (no server, no API calls — the exported model executes directly in your browser).
+**A small-data ML pipeline predicting blood transfusion need from routine patient vitals — built, debugged, and evaluated in the open.**
+
+![Python](https://img.shields.io/badge/Python-3.11-blue?logo=python&logoColor=white)
+![scikit--learn](https://img.shields.io/badge/scikit--learn-ML-orange?logo=scikitlearn&logoColor=white)
+![MySQL](https://img.shields.io/badge/MySQL-Database-4479A1?logo=mysql&logoColor=white)
+![Status](https://img.shields.io/badge/status-portfolio%20project-lightgrey)
+![License](https://img.shields.io/badge/not-medical%20advice-red)
+
+[Live Demo](#-interactive-demo) · [Notebook](#-project-structure) · [Key Findings](#-key-findings) · [Methodology](#-methodology)
+
+</div>
 
 ---
 
-## What this project does
+## 📋 Overview
 
-Given a small set of routine ICU-style vitals — heart rate, respiratory rate, oxygen saturation, systolic/diastolic blood pressure, and sex — the model estimates the likelihood that a patient stay involved a transfusion need. The dataset is a MIMIC-style demo (206 patient stays, 14 positive cases), built from a synthetic/simulated pipeline for portfolio purposes, not real clinical records.
+This project predicts whether a patient stay involved a transfusion need, using 6 routine clinical vitals — heart rate, respiratory rate, oxygen saturation, systolic/diastolic blood pressure, and sex. It's built on a small MIMIC-style demo dataset (206 patient stays, 14 positive cases).
 
-The full pipeline covers:
-- SQL-based data ingestion (patients, vitals, lab tables → MySQL)
-- Data cleaning and aggregation (one row per patient stay)
-- Leakage-safe feature selection
-- Class imbalance handling (SMOTE, applied correctly inside cross-validation folds)
-- Model comparison (Random Forest vs. Logistic Regression) via stratified 5-fold cross-validation
-- Threshold selection and calibration analysis
-- Client-side deployment of the trained model via `m2cgen`
+**What makes this project worth a look isn't a headline accuracy number — it's the debugging journey.** Two rounds of data leakage were found and fixed, a database join-explosion bug was traced and corrected, a reproducibility bug was caught, and every result is reported with honest uncertainty (cross-validated mean ± standard deviation) rather than a single cherry-picked score.
 
-## The honest story
+**🖱️ Try it live:** `transfusion_dashboard.html` — a wizard-style risk checker running the *actual* trained model client-side, no server required.
 
-This project's real value isn't a single accuracy number — it's the debugging journey, which is worth being upfront about:
+---
 
-1. **Label leakage, found twice.** The target label was originally defined directly from the same vitals used as model features — first as a pandas formula, then discovered to be baked into the underlying SQL view itself after the first fix. Both were traced and corrected by explicitly excluding every column (and anything derived from them) that the label formula depended on.
-2. **A database join-explosion bug.** An early version of the pipeline joined two tables that both had multiple rows per patient stay, without a shared row-level key — turning ~222 patients into over 2 million joined rows. Diagnosed by checking row counts against `GROUP BY` counts, and fixed by aggregating each source table to one row per stay before joining.
-3. **A reproducibility bug.** The synthetic hemoglobin generator used an unseeded random function, meaning the dataset's labels silently changed every time the pipeline was re-run — undermining any claim that results were stable. Fixed with a seeded random generator.
-4. **An honest small-sample evaluation.** With only 14 positive cases in 206 rows, a single train/test split is unreliable — one particular split produced a misleadingly low score, while cross-validation across 5 folds gave a more stable, trustworthy estimate with a reported standard deviation, not just a single number.
+## 📊 Dataset
 
-## Results
+| Attribute | Value |
+|---|---|
+| Total rows (patient stays) | 206 |
+| Positive cases (`needs_transfusion = 1`) | 14 (~6.8%) |
+| Negative cases | 192 (~93.2%) |
+| Features used in final model | 6 |
+| Source tables | `patients`, `vital`, `lab_result` |
+| Database | MySQL (`BloodMatching`) |
 
-*(Fill in with your final, reproducible cross-validation run — see the notebook's cross-validation cells for exact figures.)*
+<details>
+<summary><b>Features used</b></summary>
+<br>
 
-| Model | Mean ROC-AUC | Std |
+| Feature | Description | Type |
 |---|---|---|
-| Random Forest (+ SMOTE) | `[fill in]` | `[fill in]` |
-| Logistic Regression (+ SMOTE) | `[fill in]` | `[fill in]` |
+| `Gender` | Patient sex, label-encoded | Categorical |
+| `heart_rate_mean` | Mean heart rate across the stay | Continuous |
+| `resprate_mean` | Mean respiratory rate across the stay | Continuous |
+| `o2sat_mean` | Mean oxygen saturation across the stay | Continuous |
+| `sbp_mean` | Mean systolic blood pressure across the stay | Continuous |
+| `dbp_mean` | Mean diastolic blood pressure across the stay | Continuous |
 
-Both models were evaluated on the same 5 stratified folds, with SMOTE applied fresh inside each fold to avoid synthetic-sample leakage across folds. A precision-recall curve was used to select an operating threshold favoring recall (missing a transfusion need is costlier than a false alarm), and a calibration curve was checked to see how trustworthy the predicted probabilities themselves are — expect this to look noisy given the small positive-case count, which is itself an honest finding, not a flaw.
+**Excluded (label-defining) columns:** `hemoglobin`, `sbp_min`, `heart_rate_max`, `shock_index_mean`, `pulse_pressure_mean` — directly used in, or derived from, the label formula (see [Key Findings](#-key-findings)).
 
-## Limitations
+</details>
 
-- **Small sample size.** 206 patient stays and 14 positive cases is not enough data to draw strong conclusions — treat all metrics as indicative, not definitive.
-- **Synthetic/demo label.** The transfusion-need label is rule-derived for this demo, not a real clinical outcome — this project demonstrates methodology, not validated clinical performance.
-- **No more real data was available** for this iteration; a larger patient sample would do more for this project's reliability than any further modeling technique.
+> **Target label:** `needs_transfusion` is a rule-derived synthetic label (`hemoglobin < 7.5 OR (sbp_min < 90 AND heart_rate_max > 100)`) — a demo construct, not a real clinical transfusion-order event.
 
-## Project structure
+---
+
+## 🔬 Methodology
+
+```
+Ingestion  →  Cleaning & Aggregation  →  Leakage-Safe Feature Selection
+    →  SMOTE-Balanced Cross-Validation  →  Threshold & Calibration  →  Client-Side Deployment
+```
+
+| Step | What was done |
+|---|---|
+| **1. Ingestion** | Patients, vitals, and lab data loaded into MySQL via SQLAlchemy; credentials via `.env` |
+| **2. Cleaning & aggregation** | Vitals aggregated to one row per stay; numeric coercion, sentinel-value handling, median imputation |
+| **3. Feature selection** | Label-defining columns and their derivatives excluded from `X` |
+| **4. Imbalance handling** | SMOTE applied *inside* each CV fold via `imblearn.Pipeline` — never on the full dataset beforehand |
+| **5. Model comparison** | Random Forest vs. Logistic Regression, stratified 5-fold cross-validation |
+| **6. Threshold & calibration** | Precision-recall curve for threshold choice; calibration curve for probability trustworthiness |
+| **7. Deployment** | Final model refit on full data, exported via `m2cgen`, runs entirely client-side |
+
+### Results
+
+| Model | Mean ROC-AUC | Std | Notes |
+|---|:---:|:---:|---|
+| **Random Forest** (+ SMOTE) | 0.791 | 0.064 | Tight, consistent fold performance |
+| **Logistic Regression** (+ SMOTE) | 0.812 | 0.178 | Slightly higher mean, but far noisier fold-to-fold |
+
+Both models were evaluated on the *same* 5 stratified folds. Given the small sample size, the difference between them is not statistically decisive — reported honestly as a comparison, not a declared winner.
+
+---
+
+## 🔑 Key Findings
+
+| # | Finding | Impact |
+|---|---|---|
+| 1 | **Label leakage — found and fixed twice.** Once as a pandas formula built from model features, then discovered baked into the SQL view itself after the first fix | Both produced a meaningless perfect ROC-AUC of 1.0 until corrected |
+| 2 | **Database join-explosion bug.** Two one-to-many tables joined without a shared row key | Inflated 222 patients into 2M+ rows before being caught |
+| 3 | **Reproducibility bug.** Unseeded random hemoglobin generator | Dataset labels silently changed on every re-run until fixed |
+| 4 | **Logistic Regression matched/slightly outperformed Random Forest** in cross-validation | Legitimate small-data finding — simpler models can generalize better with limited data |
+| 5 | **The real model shows non-monotonic behavior on heart rate** | Genuine evidence of small-sample overfitting, disclosed openly in the interactive demo rather than hidden |
+
+---
+
+## ⚠️ Limitations
+
+- **Sample size.** 206 patient stays and 14 positive cases is small — all metrics here are indicative, not definitive.
+- **Synthetic label.** `needs_transfusion` is rule-derived for this demo, not a real clinical outcome. This project demonstrates leakage-aware, honestly evaluated ML methodology — not a validated clinical tool.
+- **No additional real data was available** for this iteration; a larger patient sample would improve reliability more than further modeling changes.
+- **Age** is collected in the interactive demo for context but is not one of the model's trained features.
+
+---
+
+## 🖥️ Interactive Demo
+
+`transfusion_dashboard.html` is a self-contained, single-file web app — no build step, no server, no API. Open it directly in any browser.
+
+- 5-step guided wizard (age, sex, heart/breathing rate, oxygen/blood pressure, review)
+- Runs the **actual trained Random Forest**, exported to JavaScript via `m2cgen` and executed client-side
+- Shows which vitals are outside typical range alongside the model's live probability output
+- Openly discloses the model's known quirks (e.g. the non-monotonic heart rate behavior) rather than hiding them
+
+---
+
+## 📁 Project Structure
 
 ```
 ├── Pred_Analytics_for_Transfusion.ipynb   # Full pipeline: cleaning, EDA, modeling, evaluation
 ├── transfusion_dashboard.html             # Interactive demo — runs the real trained model
 ├── model.js                               # Trained Random Forest, exported via m2cgen
-├── requirements.txt
-├── .gitignore                             # Excludes .env (DB credentials)
+├── requirements.txt                       # Python dependencies
+├── .env                                   # DB credentials (not committed — see .gitignore)
+├── .gitignore
 └── README.md
 ```
 
-## Running it yourself
+---
 
-1. Create a `.env` file with your own `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` — the notebook reads credentials from environment variables, never hardcoded.
-2. Run the notebook top to bottom (Kernel → Restart → Run All) to reproduce the full pipeline, from data ingestion through final model export.
-3. Open `transfusion_dashboard.html` directly in a browser (or serve the repo via GitHub Pages) to try the interactive demo — it runs entirely client-side.
+## 🚀 Running It Yourself
+
+```bash
+# 1. Clone and set up environment
+conda create -n transfusion-env python=3.11
+conda activate transfusion-env
+pip install -r requirements.txt
+
+# 2. Add your database credentials
+echo "DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=your_password
+DB_NAME=BloodMatching" > .env
+
+# 3. Run the notebook top to bottom
+jupyter notebook Pred_Analytics_for_Transfusion.ipynb
+```
+
+Then open `transfusion_dashboard.html` directly in a browser — or serve the repo via GitHub Pages for a shareable live link.
 
 ---
 
+<div align="center">
+
 *Portfolio project. Not medical advice.*
+
+</div>
