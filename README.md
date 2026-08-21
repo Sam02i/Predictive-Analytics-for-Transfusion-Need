@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="transfusion_pixel.gif" width="120" alt="Pixel-art blood drop animation" />
+<img src="drop_heartbeat.gif" width="110" alt="Pixel-art blood drop heartbeat animation" />
 
 # Transfusion Risk Prediction
 
@@ -111,16 +111,20 @@ Both models were evaluated on the *same* 5 stratified folds. Given the small sam
 
 ## Interactive Demo
 
-<div align="center">
-<img src="transfusion_pixel.gif" width="90" alt="Pixel-art blood drop transfusion animation" />
-</div>
-
 `transfusion_dashboard.html` is a self-contained, single-file web app — no build step, no server, no API. Open it directly in any browser.
 
 - 5-step guided wizard (age, sex, heart/breathing rate, oxygen/blood pressure, review)
 - Runs the **actual trained Random Forest**, exported to JavaScript via `m2cgen` and executed client-side
 - Shows which vitals are outside typical range alongside the model's live probability output
 - Openly discloses the model's known quirks (e.g. the non-monotonic heart rate behavior) rather than hiding them
+
+<table>
+<tr>
+<td align="center" width="33%"><img src="demo_step1.png" width="100%" alt="Wizard step 1 — age input" /><br><sub>Step 1 of 5 — guided input</sub></td>
+<td align="center" width="33%"><img src="demo_review.png" width="100%" alt="Wizard review step" /><br><sub>Review before estimating</sub></td>
+<td align="center" width="33%"><img src="demo_results.png" width="100%" alt="Live model result screen" /><br><sub>Live output from the real model</sub></td>
+</tr>
+</table>
 
 ---
 
@@ -130,7 +134,8 @@ Both models were evaluated on the *same* 5 stratified folds. Given the small sam
 ├── Pred_Analytics_for_Transfusion.ipynb   # Full pipeline: cleaning, EDA, modeling, evaluation
 ├── transfusion_dashboard.html             # Interactive demo — runs the real trained model
 ├── model.js                               # Trained Random Forest, exported via m2cgen
-├── transfusion_pixel.gif                  # Pixel-art animation used in this README
+├── drop_heartbeat.gif                      # Pixel-art animation used in this README
+├── demo_step1.png, demo_review.png, demo_results.png   # Screenshots of the interactive demo
 ├── requirements.txt                       # Python dependencies
 ├── .env                                   # DB credentials (not committed — see .gitignore)
 ├── .gitignore
