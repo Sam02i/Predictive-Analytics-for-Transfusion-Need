@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en" style="">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Transfusion Risk Checker</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="tailwind-config.js"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen flex flex-col relative overflow-x-hidden">
+<!-- Ambient Background Shader -->
+<div class="fixed inset-0 z-0 pointer-events-none w-full h-full" style="display:block;">
+<canvas id="shader-canvas-ANIMATION_8" style="display:block;width:100%;height:100%"></canvas>
+<script src="shader-bg.js"></script>
+</div>
+<!-- TopAppBar -->
+<header class="glass-panel bg-surface/80 docked full-width top-0 border-b border-outline-variant flat no shadows z-50 relative">
+<div class="flex justify-between items-center w-full px-lg py-md max-w-container-max mx-auto">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-primary text-headline-md drop-shadow-[0_0_8px_rgba(197,48,48,0.6)]">bloodtype</span>
+<span class="text-headline-md font-headline-md font-bold text-on-surface">Transfusion Risk Checker</span>
+</div>
+<div class="flex items-center gap-md">
+<button class="bg-surface-container-highest text-secondary-fixed-dim px-md py-sm rounded-full text-label-md font-label-md hover:bg-surface-container-high transition-colors border border-outline-variant hover:border-primary/50">Portfolio ML Demo</button>
+</div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="flex-grow relative z-10 w-full max-w-container-max mx-auto px-gutter py-xl flex flex-col gap-xl">
+<!-- Hero Section -->
+<section class="relative max-w-5xl mx-auto pt-xl pb-lg min-h-[500px] flex items-center justify-center flex-grow" id="hero-section">
+<div class="absolute inset-0 z-0 opacity-50 flex items-center justify-center pointer-events-none" id="3d-container"></div>
+<script src="blood-drop-3d.js"></script>
+<div class="text-center relative z-10 max-w-3xl">
+<h1 class="text-display-lg font-display-lg text-on-background mb-md drop-shadow-lg">Analyze Transfusion Risk</h1>
+<p class="text-body-lg font-body-lg text-secondary mb-lg drop-shadow">A portfolio demonstration of a Random Forest model predicting transfusion risk from 6 clinical vitals — running live in your browser, not a mockup.</p>
+<div class="flex justify-center gap-md">
+<button onclick="goToWizard()" class="bg-primary text-on-primary px-xl py-md rounded-full text-label-md font-label-md hover:bg-primary-container transition-all shadow-[0_0_15px_rgba(197,48,48,0.5)] hover:shadow-[0_0_25px_rgba(197,48,48,0.8)] hover:-translate-y-1 flex items-center gap-sm">
+                    Begin Analysis <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+<button onclick="goToMethodology()" class="glass-panel bg-surface-container/50 text-on-surface border border-outline-variant px-xl py-md rounded-full text-label-md font-label-md hover:border-primary hover:text-primary transition-all hover:-translate-y-1 flex items-center gap-sm">
+                    View Methodology
+                </button>
+</div>
+</div>
+</section>
+
+<!-- Wizard Section -->
+<section id="wizard-root">
+  <div class="w-stage">
+    <p class="w-intro">Answer a few vitals-based questions — the estimate on the last step comes from the actual trained model, exported and running client-side.</p>
+
+    <div class="w-vial-progress" id="w-vial-progress-block">
+      <div class="w-vial"><div class="w-vial-fill" id="wVialFill"></div></div>
+      <div class="w-step-meta">
+        <div class="w-label" id="wStepLabel">Step 1 of 5</div>
+        <div class="w-title" id="wStepTitle">Age</div>
+      </div>
+    </div>
+
+    <div class="w-panel" id="wWizardPanel">
+
+      <div class="w-step-view active" data-wstep="1">
+        <h3>Age</h3>
+        <p class="w-sub">Not one of the model's 6 trained features — included here just so the form feels complete.</p>
+        <div class="w-field">
+          <div class="w-field-label"><span>Patient age</span><span class="w-val" id="wAgeVal">45 yrs</span></div>
+          <input type="range" class="w-range" id="wAge" min="18" max="95" value="45" oninput="wRenderLive()">
+          <div class="w-field-range">18 – 95 years · shown for context, not used by the trained model</div>
+        </div>
+      </div>
+
+      <div class="w-step-view" data-wstep="2">
+        <h3>Sex assigned at birth</h3>
+        <p class="w-sub">Included because the demo dataset shows a small, real gap in transfusion rate by sex — not a diagnostic factor on its own.</p>
+        <div class="w-choice-row">
+          <div class="w-choice-btn active" id="wBtnF" onclick="wSetGender('F')">
+            <span class="w-ico">♀</span><span class="w-txt">Female</span>
+          </div>
+          <div class="w-choice-btn" id="wBtnM" onclick="wSetGender('M')">
+            <span class="w-ico">♂</span><span class="w-txt">Male</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="w-step-view" data-wstep="3">
+        <h3>Heart & breathing rate</h3>
+        <p class="w-sub">Average readings across the stay so far.</p>
+        <div class="w-field">
+          <div class="w-field-label"><span>Heart rate</span><span class="w-val" id="wHrVal">87 bpm</span></div>
+          <input type="range" class="w-range" id="wHr" min="50" max="140" value="87" oninput="wRenderLive()">
+          <div class="w-field-range">Typical resting range: 60–100 bpm</div>
+        </div>
+        <div class="w-field">
+          <div class="w-field-label"><span>Respiratory rate</span><span class="w-val" id="wRrVal">18 br/min</span></div>
+          <input type="range" class="w-range" id="wRr" min="10" max="34" value="18" oninput="wRenderLive()">
+          <div class="w-field-range">Typical range: 12–20 breaths/min</div>
+        </div>
+      </div>
+
+      <div class="w-step-view" data-wstep="4">
+        <h3>Oxygen & blood pressure</h3>
+        <p class="w-sub">Also averaged across the stay.</p>
+        <div class="w-field">
+          <div class="w-field-label"><span>Oxygen saturation</span><span class="w-val" id="wO2Val">98%</span></div>
+          <input type="range" class="w-range" id="wO2" min="75" max="100" value="98" oninput="wRenderLive()">
+          <div class="w-field-range">Typical range: 95–100%</div>
+        </div>
+        <div class="w-field">
+          <div class="w-field-label"><span>Systolic BP</span><span class="w-val" id="wSbpVal">117 mmHg</span></div>
+          <input type="range" class="w-range" id="wSbp" min="60" max="185" value="117" oninput="wRenderLive()">
+          <div class="w-field-range">Typical range: 90–130 mmHg</div>
+        </div>
+        <div class="w-field">
+          <div class="w-field-label"><span>Diastolic BP</span><span class="w-val" id="wDbpVal">70 mmHg</span></div>
+          <input type="range" class="w-range" id="wDbp" min="35" max="135" value="70" oninput="wRenderLive()">
+          <div class="w-field-range">Typical range: 60–90 mmHg</div>
+        </div>
+      </div>
+
+      <div class="w-step-view" data-wstep="5">
+        <h3>Review your entries</h3>
+        <p class="w-sub">Everything below feeds the estimate on the next screen.</p>
+        <div class="w-review-group">
+          <div class="w-review-group-label">About you</div>
+          <div class="w-review-list" id="wReviewListAbout"></div>
+        </div>
+        <div class="w-review-group">
+          <div class="w-review-group-label">Vitals</div>
+          <div class="w-review-list" id="wReviewListVitals"></div>
+        </div>
+      </div>
+
+      <div class="w-nav-row">
+        <button class="w-btn w-btn-ghost" id="wBackBtn" onclick="wPrevStep()">Back</button>
+        <button class="w-btn w-btn-primary" id="wNextBtn" onclick="wNextStep()">Continue</button>
+      </div>
+    </div>
+
+    <div class="w-trust-row" id="w-trust-row-block">
+      <span class="w-trust-chip"><span class="w-dot"></span>Open-source notebook</span>
+      <span class="w-trust-chip"><span class="w-dot"></span>Not medical advice</span>
+      <span class="w-trust-chip"><span class="w-dot"></span>Built as a learning project</span>
+    </div>
+
+    <div class="w-panel w-result-view" id="wResultPanel">
+      <h3 style="text-align:left;">Your estimate</h3>
+      <p class="w-sub" style="text-align:left;">Live output from the trained Random Forest.</p>
+
+      <div class="w-gauge-wrap">
+        <svg width="180" height="180" viewBox="0 0 180 180">
+          <defs>
+            <linearGradient id="wGaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#0B6B46"/>
+              <stop offset="55%" stop-color="#B8860B"/>
+              <stop offset="100%" stop-color="#A2141B"/>
+            </linearGradient>
+          </defs>
+          <circle class="w-gauge-bg" cx="90" cy="90" r="74"/>
+          <circle class="w-gauge-fg" id="wGaugeFg" cx="90" cy="90" r="74" stroke-dasharray="464.9" stroke-dashoffset="464.9"/>
+        </svg>
+        <div class="w-gauge-center">
+          <div class="w-gauge-pct" id="wPctText">—</div>
+          <div class="w-gauge-tag" id="wTagText">calm</div>
+        </div>
+      </div>
+
+      <div class="w-factors">
+        <h4>Vitals outside typical range</h4>
+        <div id="wFactorList"></div>
+      </div>
+
+      <div class="w-model-note">
+        <b>About this number:</b> this gauge runs the actual trained Random Forest, exported to JavaScript
+        and executed right here in your browser. It was trained on a small 206-row demo dataset
+        (14 positive cases), evaluated with cross-validation — a real but modest result given the
+        sample size (see Methodology). Age is shown above for context only; it isn't one of the
+        model's 6 trained features. Worth knowing: with so few positive cases to learn from, some
+        sliders (heart rate in particular) don't move the estimate in a strictly textbook direction —
+        that's the real model being honest about a small, noisy dataset, not a display bug. Treat this
+        as a portfolio demonstration, not a diagnostic tool.
+      </div>
+
+      <div class="w-nav-row" style="justify-content:center; margin-top:22px;">
+        <button class="w-btn w-btn-ghost" onclick="wRestart()">← Start over</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Methodology Section -->
+<section id="methodology-root">
+  <div class="m-stage">
+    <h2 class="text-headline-md font-headline-md font-bold text-on-surface mb-sm">Methodology</h2>
+    <p class="text-body-md text-secondary mb-lg">How this model was built, evaluated, and where its limits are.</p>
+
+    <div class="m-stat-grid">
+      <div class="m-stat-card"><div class="m-num">206</div><div class="m-lbl">Patient stays</div></div>
+      <div class="m-stat-card"><div class="m-num">14</div><div class="m-lbl">Positive cases</div></div>
+      <div class="m-stat-card"><div class="m-num">6</div><div class="m-lbl">Clinical features</div></div>
+      <div class="m-stat-card"><div class="m-num">5-fold</div><div class="m-lbl">Cross-validation</div></div>
+      <div class="m-stat-card"><div class="m-num">RF + LR</div><div class="m-lbl">Models compared</div></div>
+      <div class="m-stat-card"><div class="m-num">SMOTE</div><div class="m-lbl">Class balancing</div></div>
+    </div>
+
+    <div class="m-note">
+      <b>The short version:</b> a Random Forest and a Logistic Regression baseline were both evaluated
+      with stratified 5-fold cross-validation, with SMOTE applied fresh inside each fold to avoid
+      leakage. Exact ROC-AUC figures are finalized in the project notebook, which also documents two
+      rounds of data-leakage detection and correction, a database join-explosion bug that was found
+      and fixed, and an honest discussion of what a 14-positive-case dataset can and can't support.
+      Full details, cross-validation results, the calibration curve, and the threshold analysis are in
+      the notebook alongside this demo — this page is the interactive front door, not a replacement
+      for the write-up.
+    </div>
+  </div>
+</section>
+
+</main>
+<!-- Footer -->
+<footer class="glass-panel bg-surface-dim/80 full-width pb-xl relative z-10 border-t border-outline-variant mt-auto">
+<div class="flex flex-col md:flex-row items-center justify-center gap-md py-lg w-full max-w-container-max mx-auto px-gutter">
+<div class="text-label-sm font-label-sm font-semibold text-on-surface">
+                Portfolio project. Not medical advice.
+            </div>
+<div class="flex items-center gap-md">
+<a class="text-secondary hover:text-primary transition-colors text-label-sm font-label-sm" href="./Pred_Analytics_for_Transfusion.ipynb">Open-source notebook</a>
+</div>
+</div>
+</footer>
+
+<script src="model.js"></script>
+
+<script src="wizard.js"></script>
+
+</body></html>
